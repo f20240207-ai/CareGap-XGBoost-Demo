@@ -316,6 +316,58 @@ else:
         "geographic screening disparities across Georgia."
     )
 
+    # Colorectal screening-gap map
+    st.subheader("Colorectal Screening Gap Map")
+
+    import re
+
+    map_df = spatial_df.copy()
+
+    # Convert gap scores to numbers
+    map_df["Colorectal_Gap_Score"] = pd.to_numeric(
+        map_df["Colorectal_Gap_Score"],
+        errors="coerce"
+    )
+
+    # Extract longitude and latitude from POINT (longitude latitude)
+    coordinates = map_df["Geolocation"].astype(str).str.extract(
+        r"POINT\s*\(\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*\)"
+    )
+
+    map_df["longitude"] = pd.to_numeric(
+        coordinates[0], errors="coerce"
+    )
+    map_df["latitude"] = pd.to_numeric(
+        coordinates[1], errors="coerce"
+    )
+
+    map_df = map_df.dropna(
+        subset=["latitude", "longitude", "Colorectal_Gap_Score"]
+    )
+
+    if map_df.empty:
+        st.warning("No valid geographic coordinates were found.")
+    else:
+        st.write(
+            f"Displaying {len(map_df):,} Georgia census tracts. "
+            "Each point represents a tract location, not a facility."
+        )
+
+        st.map(
+            map_df,
+            latitude="latitude",
+            longitude="longitude",
+            color="#FF6B6B",
+            size=20,
+            zoom=6
+        )
+
+        st.caption(
+            "This map displays census tract locations. "
+            "The points do not yet use color to represent gap scores."
+        )
+
+
     colorectal_col = "COLON_SCREEN_CrudePrev"
 
     if colorectal_col not in spatial_df.columns:
