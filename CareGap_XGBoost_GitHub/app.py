@@ -225,89 +225,144 @@ if uploaded_file is not None:
             )
 
 
+
+
 # =========================================================
-# SPATIAL ANALYSIS — GEORGIA SCREENING ACCESS
+# SPATIAL ANALYSIS — SCREENING-SPECIFIC VIEWS
 # =========================================================
 
 st.divider()
-st.header("Spatial Analysis — Georgia Screening Access")
-
-st.write(
-    "Explore the geographic distribution of mammography "
-    "facilities and distance-based screening access "
-    "across Georgia."
-)
+st.header(f"Spatial Analysis — {screening_type} Screening")
 
 spatial_folder = BASE_DIR / "caregap_dashboard"
 
-spatial_df = pd.read_csv(
-    spatial_folder / "caregap_data.csv"
-)
+@st.cache_data
+def load_spatial_data():
+    return pd.read_csv(
+        spatial_folder / "caregap_data.csv"
+    )
 
-facilities_df = pd.read_csv(
-    spatial_folder /
-    "georgia_mammography_facilities_with_coordinates.csv"
-)
+spatial_df = load_spatial_data()
 
-# Facility coordinates
-facilities_df["Latitude"] = pd.to_numeric(
-    facilities_df["Latitude"], errors="coerce"
-)
-facilities_df["Longitude"] = pd.to_numeric(
-    facilities_df["Longitude"], errors="coerce"
-)
+if screening_type == "Mammography":
 
-facilities_map = facilities_df.dropna(
-    subset=["Latitude", "Longitude"]
-).copy()
+    st.write(
+        "Explore mammography facility locations and "
+        "geographic accessibility across Georgia."
+    )
 
-st.subheader("Mammography Facility Locations")
+    facilities_df = pd.read_csv(
+        spatial_folder /
+        "georgia_mammography_facilities_with_coordinates.csv"
+    )
 
-st.write(
-    f"Displaying {len(facilities_map)} geocoded "
-    "mammography facilities in Georgia."
-)
+    facilities_df["Latitude"] = pd.to_numeric(
+        facilities_df["Latitude"], errors="coerce"
+    )
+    facilities_df["Longitude"] = pd.to_numeric(
+        facilities_df["Longitude"], errors="coerce"
+    )
 
-st.map(
-    facilities_map,
-    latitude="Latitude",
-    longitude="Longitude",
-    zoom=6
-)
+    facilities_map = facilities_df.dropna(
+        subset=["Latitude", "Longitude"]
+    ).copy()
 
-st.caption(
-    "Each point represents a geocoded mammography "
-    "facility. This is not a map of colorectal facilities."
-)
+    st.subheader("Mammography Facility Locations")
 
-# Distance distribution
-st.subheader("Distance to Nearest Mammography Facility")
+    st.write(
+        f"Displaying {len(facilities_map)} "
+        "geocoded mammography facilities."
+    )
 
-distance_col = "Nearest_Mammo_Distance_km"
+    st.map(
+        facilities_map,
+        latitude="Latitude",
+        longitude="Longitude",
+        zoom=6
+    )
 
-distances = pd.to_numeric(
-    spatial_df[distance_col],
-    errors="coerce"
-).dropna()
+    st.subheader("Distance to Nearest Mammography Facility")
 
-fig, ax = plt.subplots(figsize=(8, 4))
+    distances = pd.to_numeric(
+        spatial_df["Nearest_Mammo_Distance_km"],
+        errors="coerce"
+    ).dropna()
 
-ax.hist(distances, bins=30, edgecolor="white")
-ax.set_xlabel("Distance to Nearest Facility (km)")
-ax.set_ylabel("Number of Census Tracts")
-ax.set_title("Geographic Distribution of Facility Distance")
-ax.grid(axis="y", alpha=0.2)
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.hist(distances, bins=30, edgecolor="white")
+    ax.set_xlabel("Distance (km)")
+    ax.set_ylabel("Number of Census Tracts")
+    ax.set_title("Mammography Facility Accessibility")
+    ax.grid(axis="y", alpha=0.2)
 
-st.pyplot(fig)
-plt.close(fig)
+    st.pyplot(fig)
+    plt.close(fig)
 
-c1, c2, c3 = st.columns(3)
+    c1, c2, c3 = st.columns(3)
 
-c1.metric("Census Tracts", f"{len(spatial_df):,}")
-c2.metric("More Than 10 km", f"{(distances > 10).sum():,}")
-c3.metric("More Than 20 km", f"{(distances > 20).sum():,}")
+    c1.metric("Census Tracts", f"{len(spatial_df):,}")
+    c2.metric("More Than 10 km", f"{(distances > 10).sum():,}")
+    c3.metric("More Than 20 km", f"{(distances > 20).sum():,}")
 
-st.caption(
-    "Distances are approximate straight-line geographic "
-    "distances, not road travel distances or travel times."
-)
+    st.caption(
+        "Distances are approximate straight-line distances, "
+        "not road travel distances."
+    )
+
+else:
+
+    st.write(
+        "Explore colorectal screening prevalence and "
+        "geographic screening disparities across Georgia."
+    )
+
+    colorectal_col = "COLON_SCREEN_CrudePrev"
+
+    if colorectal_col not in spatial_df.columns:
+        st.error(
+            "Colorectal screening column not found. "
+            "Check the dataset schema."
+        )
+    else:
+        colorectal = pd.to_numeric(
+            spatial_df[colorectal_col],
+            errors="coerce"
+        ).dropna()
+
+        st.subheader("Colorectal Screening Distribution")
+
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.hist(
+            colorectal,
+            bins=30,
+            edgecolor="white"
+        )
+        ax.set_xlabel("Estimated Screening Prevalence (%)")
+        ax.set_ylabel("Number of Census Tracts")
+        ax.set_title("Colorectal Screening Across Georgia")
+        ax.grid(axis="y", alpha=0.2)
+
+        st.pyplot(fig)
+        plt.close(fig)
+
+        c1, c2, c3 = st.columns(3)
+
+        c1.metric(
+            "Census Tracts",
+            f"{len(colorectal):,}"
+        )
+
+        c2.metric(
+            "Mean Screening",
+            f"{colorectal.mean():.2f}%"
+        )
+
+        c3.metric(
+            "Below 60% Screening",
+            f"{(colorectal < 60).sum():,}"
+        )
+
+        st.caption(
+            "Screening prevalence values are modeled "
+            "CDC PLACES estimates, not individual predictions."
+        )
