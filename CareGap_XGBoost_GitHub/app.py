@@ -352,7 +352,7 @@ else:
             f"Displaying {len(map_df):,} Georgia census tracts. "
             "Each point represents a tract location, not a facility."
         )
-
+(
                 st.map(
             map_df,
             latitude="latitude",
@@ -361,7 +361,7 @@ else:
             size=8,
             zoom=6
         )
-        
+)   
 
         st.caption(
             "This map displays census tract locations. "
