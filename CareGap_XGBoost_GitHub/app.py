@@ -353,14 +353,15 @@ else:
             "Each point represents a tract location, not a facility."
         )
 
-        st.map(
+                st.map(
             map_df,
             latitude="latitude",
             longitude="longitude",
-            color="#FF6B6B",
-            size=20,
+            color="#2196F3",
+            size=8,
             zoom=6
         )
+        
 
         st.caption(
             "This map displays census tract locations. "
