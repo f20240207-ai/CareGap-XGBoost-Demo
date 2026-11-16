@@ -298,11 +298,25 @@ if screening_type == "Mammography":
     st.pyplot(fig)
     plt.close(fig)
 
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
 
     c1.metric("Census Tracts", f"{len(spatial_df):,}")
     c2.metric("More Than 10 km", f"{(distances > 10).sum():,}")
     c3.metric("More Than 20 km", f"{(distances > 20).sum():,}")
+
+if "MAMMOUSE_CrudePrev" in spatial_df.columns:
+    mammo_rates = pd.to_numeric(
+        spatial_df["MAMMOUSE_CrudePrev"],
+        errors="coerce"
+    ).dropna()
+    c4.metric(
+        "Mean Mammography Screening",
+        f"{mammo_rates.mean():.2f}%"
+        if not mammo_rates.empty else "N/A"
+    )
+else:
+    c4.metric("Mean Mammography Screening", "N/A")
+
 
     st.caption(
         "Distances are approximate straight-line distances, "
